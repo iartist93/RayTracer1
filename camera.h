@@ -4,11 +4,14 @@
 class Camera
 {
 public:
-    Camera() : lower_left(vec3(-2.f, -1.f, -1.f)), origin(vec3(0)), 
-        width(vec3(4.0f, 0, 0)), height(vec3(0, 2.f, 0)) { }
+    Camera() :
+        origin(vec3(0.f)), 
+        lower_left(vec3(-2.f, -1.f, -1.f)),
+        width(vec3(4.0f, 0, 0)), 
+        height(vec3(0, 2.f, 0)) {}
 
     Camera(const vec3& origin, const vec3& lower_left, const vec3& width, const vec3& height):
-        origin(origin), lower_left(lower_left), width(width), height(height) { }
+        origin(origin), lower_left(lower_left), width(width), height(height) {}
 
     Ray RayCast(float x, float y)
     {

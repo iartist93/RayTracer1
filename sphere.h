@@ -5,7 +5,7 @@
 class Sphere : public Hitable
 {
 public:
-    Sphere() : {}
+    Sphere() {}
     Sphere(const vec3& center, float radius, Material* material): center(center), radius(radius), material(material) {}
     virtual bool Hit(const Ray& ray, float t_min, float t_max, OUT HitResult& hitResult) const;
 
@@ -24,20 +24,20 @@ bool Sphere::Hit(const Ray& ray, float t_min, float t_max, OUT HitResult& hitRes
 
     // for the discriminator equation
     float a = dot(B, B);
-    float b = 2.f * dot(B, A_minus_C);
+    float b = dot(B, A_minus_C);
     float c = dot(A_minus_C, A_minus_C) - (radius * radius);
     
-    float discriminator = (b*b) - (4.f*a*c);
+    float discriminator = (b*b) - (a*c);
 
     if(discriminator > 0)
     {
-        float t1 = (-b + sqrt(discriminator)) / 2.f*a;
-        float t2 = (-b - sqrt(discriminator)) / 2.f*a;
+        float t1 = (-b + sqrt(discriminator)) / a;
+        float t2 = (-b - sqrt(discriminator)) / a;
         
-        if(t2 >= t_min && t2 <= t_max)
+        if(t2 > t_min && t2 < t_max)
         {
             vec3 hitPoint = ray.PointAt(t2);
-            vec3 normal = unit_vector(hitPoint - center);     // normalize
+            vec3 normal = (hitPoint - center) / radius;     // normalize
 
             // std::cout << "1 > Normal " << normal.x() << " " << normal.y() << " " << normal.z() << " ";            
             // vec3 r = (hitPoint - center)/radius;
@@ -47,10 +47,10 @@ bool Sphere::Hit(const Ray& ray, float t_min, float t_max, OUT HitResult& hitRes
             return true;
         }
         
-        if(t1 >= t_min && t1 <= t_max)
+        if(t1 > t_min && t1 < t_max)
         {
             vec3 hitPoint = ray.PointAt(t1);
-            vec3 normal = unit_vector(hitPoint - center);     // normalize
+            vec3 normal = (hitPoint - center) / radius;     // normalize
             hitResult = HitResult(t1, hitPoint, normal, material);
 
             return true;
