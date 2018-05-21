@@ -5,13 +5,14 @@
 class Sphere : public Hitable
 {
 public:
-    Sphere() : center(vec3(0)), radius(0) {}
-    Sphere(const vec3& center, float radius): center(center), radius(radius) {}
+    Sphere() : {}
+    Sphere(const vec3& center, float radius, Material* material): center(center), radius(radius), material(material) {}
     virtual bool Hit(const Ray& ray, float t_min, float t_max, OUT HitResult& hitResult) const;
 
 private:
     vec3 center;
     float radius;
+    Material* material;
 };
 
 
@@ -42,7 +43,7 @@ bool Sphere::Hit(const Ray& ray, float t_min, float t_max, OUT HitResult& hitRes
             // vec3 r = (hitPoint - center)/radius;
             // std::cout << "1 > /Radius " << r.x() << " " << r.y() << " " << r.z() << std::endl;
 
-            hitResult = HitResult(t2, hitPoint, normal);
+            hitResult = HitResult(t2, hitPoint, normal, material);
             return true;
         }
         
@@ -50,7 +51,7 @@ bool Sphere::Hit(const Ray& ray, float t_min, float t_max, OUT HitResult& hitRes
         {
             vec3 hitPoint = ray.PointAt(t1);
             vec3 normal = unit_vector(hitPoint - center);     // normalize
-            hitResult = HitResult(t1, hitPoint, normal);
+            hitResult = HitResult(t1, hitPoint, normal, material);
 
             return true;
         }

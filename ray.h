@@ -4,7 +4,7 @@
 class Ray
 {
 public:
-    Ray();
+    Ray(){}
     Ray(const vec3 &A, const vec3 &B): A(A), B(B) {}
 
     vec3 Origin() const { return A; }

@@ -1,21 +1,22 @@
 #include <iostream>
 #include <fstream>
+#include <vector>
+#include <string>
+#include <ctime>    // For time()
+#include <cstdlib>  // For srand() and rand()
+
 #include "vec3.h"
 #include "ray.h"
 #include "sphere.h"
 #include "hitable_list.h"
-#include <vector>
-#include <string>
 #include "camera.h"
-#include <ctime>    // For time()
-#include <cstdlib>  // For srand() and rand()
+#include "material.h"
 
 
 #define OUT 
 
 void ReversePPM(std::string input, std::string output, int width, int height)
 {
-        
     std::ifstream in_image(input, std::ifstream::in);
     std::vector<std::string> reversedLines;
     std::string line;
@@ -39,32 +40,18 @@ void ReversePPM(std::string input, std::string output, int width, int height)
     out_image.close();
 }
 
-vec3 RandomPointUnitSphere()
-{
-    vec3 p;
-    do {
-        p = 2.f * vec3((rand() % 10) / 10.f, (rand() % 10) / 10.f, (rand() % 10) / 10.f) - vec3(1.f);
-    } while(p.squared_length() >= 1.f);                   // must be <1 to be on sphere
-    return p;
-}
-
-vec3 SampleColor(const Ray & ray, Hitable* hitable_list, int depth = 0)
+vec3 SampleColor(const Ray & ray, HitableList* hitable_list, int depth = 0)
 {
     HitResult hitResult;
-
+    
     if(hitable_list->Hit(ray, 0.001, 100000000, hitResult))
     {
-		// random() = [0-1] local to it's unit sphere so get it's coordinate related to the origin = hitpoint + normal
-        vec3 target = hitResult.p + hitResult.n + RandomPointUnitSphere();
-
-		if (depth < 100)
-			return 0.5f * SampleColor(Ray(hitResult.p, target - hitResult.p), hitable_list, depth + 1);
+        Ray scatteredRay;
+        vec3 attentuation;
+		if (depth < 50 && hitResult.matPtr->Scatter(ray, hitResult, attentuation, scatteredRay))
+			return attentuation * SampleColor(scatteredRay, hitable_list, depth + 1);
 		else
 			return vec3(0.0f);
-	
-		
-		// vec3 normalColor = 0.5f * (hitResult.n + vec3(1.f, 1.0f, 1.0f));  // convert the noraml[-1, 1] to [0, 1] to output RGB color
-        // return normalColor;
     }   
     else
     {
@@ -76,17 +63,20 @@ vec3 SampleColor(const Ray & ray, Hitable* hitable_list, int depth = 0)
 
 int main()
 {
-    srand(time(0));
+	srand((unsigned)time(NULL));
 
     std::ofstream image;
     image.open("output.ppm");
     const int width = 200, height = 100, samples = 100;
     
     //----------- Objects in the scene ------------//
-    Hitable* list[2];
-    list[0] = new Sphere(vec3(0, 0, -1.f), 0.5f);
-    list[1] = new Sphere(vec3(0, -100.5f, -1.f), 100.f);
-    Hitable* scene= new HitableList(list, 2);
+    Hitable* list[4];
+    list[0] = new Sphere(vec3(0, 0, -1.f), 0.7f, new Lambert(vec3(.8f, .3f, .3f)));
+    //list[1] = new Sphere(vec3(0, -100.5f, -1.f), 100.f, new Lambert(vec3(.8f, .8f, 0)));
+    //list[2] = new Sphere(vec3(-1.f, 0, -1.f), 0.4f, new Metal(vec3(.8f, .6f, 0.2f)));
+    //list[3] = new Sphere(vec3(1.f, 0, -1.f), 0.4f, new Metal(vec3(.8f, .8f, 0.8f)));
+
+    HitableList* scene= new HitableList(list, 1);
     
     //----------------- Camera --------------------//  
     Camera cam;
@@ -100,15 +90,15 @@ int main()
             vec3 color = vec3(0.0f);
             for(int s = 0; s < samples; s++)
             {
-                float u = float(row + (rand() % 10) / 10.f )/float(width);
-                float v = float(col + (rand() % 10) / 10.f )/float(height);
+                float u = float(row + (rand() % 10) / 10.f) / float(width);
+                float v = float(col + (rand() % 10) / 10.f) / float(height);
 
                 // ray goes to each pixel in the image
                 Ray ray = cam.RayCast(u, v);
-                color += SampleColor(ray, scene);           // sample a color from a scene using a ray
+                color += SampleColor(ray, scene, 0);           // sample a color from a scene using a ray
             }
 
-            color /= samples;       // averaging
+            color /= float(samples);       // averaging
             color = vec3(sqrt(color[0]), sqrt(color[1]), sqrt(color[2]));
 
             color[0] *= 255.99f;
