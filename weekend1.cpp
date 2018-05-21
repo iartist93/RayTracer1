@@ -6,6 +6,10 @@
 #include "hitable_list.h"
 #include <vector>
 #include <string>
+#include "camera.h"
+#include <ctime>    // For time()
+#include <cstdlib>  // For srand() and rand()
+
 
 #define OUT 
 
@@ -35,7 +39,8 @@ void ReversePPM(std::string input, std::string output, int width, int height)
     out_image.close();
 }
 
-vec3 Color(const Ray & ray, Hitable* hitable_list)
+
+vec3 SampleColor(const Ray & ray, Hitable* hitable_list)
 {
     HitResult hitResult;
 
@@ -44,7 +49,7 @@ vec3 Color(const Ray & ray, Hitable* hitable_list)
         vec3 normalColor = 0.5f * (hitResult.n + vec3(1.f, 1.0f, 1.0f));  // convert the noraml[-1, 1] to [0, 1] to output RGB color
         return normalColor;
     }
-   /// else
+    else
     {
         vec3 ray_dir = unit_vector(ray.Direction());
         float t = 0.5 * (ray_dir.y() + 1.0);            // convert from [-1, 1] to [0, 1]
@@ -56,33 +61,37 @@ int main()
 {
     std::ofstream image;
     image.open("output.ppm");
-    const int width = 200, height = 100;
-    //image << "P3\n" << width << " " << height << "\n255\n";
-
-    vec3 origin     = vec3(0.0, 0.0, 0.0);              // ray origin
-    // screen dimension (square to interest with)
-    vec3 lower_left = vec3(-2.0, -1.0, -1.0);
-    vec3 horizontal = vec3(4.0, 0.0, 0.0);
-    vec3 vertical   = vec3(0.0, 2.0, 0.0);
+    const int width = 200, height = 100, samples = 100;
     
-    //--------------- Hitables -----------------//
+    //----------- Objects in the scene ------------//
     Hitable* list[2];
     list[0] = new Sphere(vec3(0, 0, -1.f), 0.5f);
     list[1] = new Sphere(vec3(0, -100.5f, -1.f), 100.f);
-
     Hitable* scene= new HitableList(list, 2);
+    
+    //----------------- Camera --------------------//  
+    Camera cam;
+
+    // -------------- rendering loop --------------//
+    srand(time(0));  // Initialize random number generator.
 
     for(int col = 0; col < height; col++)
     {
         for(int row = 0; row < width; row++)
         {
-            float u = float(row)/float(width);
-            float v = float(col)/float(height);
+            vec3 color = vec3(0.0f);
+            for(int s = 0; s < samples; s++)
+            {
+                float u = float(row + (rand() % 10) / 10.f )/float(width);
+                float v = float(col + (rand() % 10) / 10.f )/float(height);
 
-            // ray goes to each pixel in the image
-            Ray ray    = Ray(origin, lower_left + u*horizontal + v*vertical);
-            vec3 color = Color(ray, scene);
-            
+                // ray goes to each pixel in the image
+                Ray ray = cam.RayCast(u, v);
+                color += SampleColor(ray, scene);           // sample a color from a scene using a ray
+            }
+
+            color /= samples;       // averaging
+
             color[0] *= 255.99f;
             color[1] *= 255.99f;
             color[2] *= 255.99f;
@@ -92,7 +101,6 @@ int main()
         image << "\n";
     }
     image.close();
-
 
     ReversePPM("output.ppm", "output2.ppm", width, height);
 }
@@ -104,3 +112,6 @@ int main()
 // normal vector is normalized
 // normal of sphere = hit point - center point
 // tmin and tmax for what range on the ray to count the hit
+// each pixel will have many many samples contributing to the final color
+// we model in the camera space (-2, -1, -1) to (2, 1, -1)
+// 
