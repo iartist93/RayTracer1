@@ -5,7 +5,7 @@ class Ray
 {
 public:
     Ray();
-    Ray(vec3 &A, vec3 &B): A(A), B(B) {}
+    Ray(const vec3 &A, const vec3 &B): A(A), B(B) {}
 
     vec3 Origin() const { return A; }
     vec3 Direction() const {return B; }

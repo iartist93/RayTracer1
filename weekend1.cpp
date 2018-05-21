@@ -39,16 +39,33 @@ void ReversePPM(std::string input, std::string output, int width, int height)
     out_image.close();
 }
 
+vec3 RandomPointUnitSphere()
+{
+    vec3 p;
+    do {
+        p = 2.f * vec3((rand() % 10) / 10.f, (rand() % 10) / 10.f, (rand() % 10) / 10.f) - vec3(1.f);
+    } while(p.squared_length() >= 1.f);                   // must be <1 to be on sphere
+    return p;
+}
 
-vec3 SampleColor(const Ray & ray, Hitable* hitable_list)
+vec3 SampleColor(const Ray & ray, Hitable* hitable_list, int depth = 0)
 {
     HitResult hitResult;
 
-    if(hitable_list->Hit(ray, 0, 100000000, hitResult))
+    if(hitable_list->Hit(ray, 0.001, 100000000, hitResult))
     {
-        vec3 normalColor = 0.5f * (hitResult.n + vec3(1.f, 1.0f, 1.0f));  // convert the noraml[-1, 1] to [0, 1] to output RGB color
-        return normalColor;
-    }
+		// random() = [0-1] local to it's unit sphere so get it's coordinate related to the origin = hitpoint + normal
+        vec3 target = hitResult.p + hitResult.n + RandomPointUnitSphere();
+
+		if (depth < 100)
+			return 0.5f * SampleColor(Ray(hitResult.p, target - hitResult.p), hitable_list, depth + 1);
+		else
+			return vec3(0.0f);
+	
+		
+		// vec3 normalColor = 0.5f * (hitResult.n + vec3(1.f, 1.0f, 1.0f));  // convert the noraml[-1, 1] to [0, 1] to output RGB color
+        // return normalColor;
+    }   
     else
     {
         vec3 ray_dir = unit_vector(ray.Direction());
@@ -59,6 +76,8 @@ vec3 SampleColor(const Ray & ray, Hitable* hitable_list)
 
 int main()
 {
+    srand(time(0));
+
     std::ofstream image;
     image.open("output.ppm");
     const int width = 200, height = 100, samples = 100;
@@ -73,7 +92,6 @@ int main()
     Camera cam;
 
     // -------------- rendering loop --------------//
-    srand(time(0));  // Initialize random number generator.
 
     for(int col = 0; col < height; col++)
     {
@@ -91,6 +109,7 @@ int main()
             }
 
             color /= samples;       // averaging
+            color = vec3(sqrt(color[0]), sqrt(color[1]), sqrt(color[2]));
 
             color[0] *= 255.99f;
             color[1] *= 255.99f;
