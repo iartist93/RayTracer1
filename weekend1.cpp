@@ -67,19 +67,19 @@ int main()
 
     std::ofstream image;
     image.open("output.ppm");
-    const int width = 200, height = 100, samples = 100;
+    const int width = 400, height = 200, samples = 100;
     
     //----------- Objects in the scene ------------//
     Hitable* list[4];
-    list[0] = new Sphere(vec3(0, 0, -1.f), 0.5f, new Lambert(vec3(.8f, .3f, .3f)));
-    list[1] = new Sphere(vec3(0, -105.5f, -1.f), 100.f, new Lambert(vec3(.8f, .8f, 0)));
-    list[2] = new Sphere(vec3(-1.f, 0, -1.f), 0.5f, new Metal(vec3(.8f, .6f, 0.2f)));
-    list[3] = new Sphere(vec3(1.f, 0, -1.f), 0.5f, new Metal(vec3(.8f, 86f, .8f)));
+    list[0] = new Sphere(vec3(0, 0, -1.9f), .9f, new Lambert(vec3(.8f, .3f, .3f)));
+    list[1] = new Sphere(vec3(0, -205.5f, -1.9f), 200.f, new Lambert(vec3(.8f, .8f, 0)));
+    list[2] = new Sphere(vec3(-1.8f, 0, -1.9f), .8f, new Metal(vec3(.8f, .6f, 0.2f)));
+    list[3] = new Sphere(vec3(1.8f, 0, -1.9f), .8f, new Metal(vec3(.8f, .8f, .8f)));
 
     HitableList* scene= new HitableList(list, 4);
     
     //----------------- Camera --------------------//  
-    Camera cam; //(vec3(0), vec3(-4.f, -2.f, -1.f), vec3(8.f, 0.f, 0.f), vec3(0.f, 4.f, 0));
+    Camera cam(vec3(0), vec3(-4.f, -2.f, -1.f), vec3(8.f, 0.f, 0.f), vec3(0.f, 4.f, 0));
 
     // -------------- rendering loop --------------//
 
@@ -107,7 +107,7 @@ int main()
 
             image << int(color[0]) << " " << int(color[1]) << " " << int(color[2]) << " ";
         }
-		std::cout << col << std::endl;
+		//std::cout << col << std::endl;
         image << "\n";
     }
     image.close();
