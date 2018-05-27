@@ -40,7 +40,7 @@ void ReversePPM(std::string input, std::string output, int width, int height)
     out_image.close();
 }
 
-vec3 SampleColor(const Ray & ray, HitableList* hitable_list, int depth = 0)
+vec3 SampleColor(const Ray & ray, Surface* hitable_list, int depth = 0)
 {
     HitResult hitResult;
     
@@ -49,11 +49,11 @@ vec3 SampleColor(const Ray & ray, HitableList* hitable_list, int depth = 0)
         Ray scatteredRay;
         vec3 attentuation;
 		if (depth < 50 && hitResult.matPtr->Scatter(ray, hitResult, attentuation, scatteredRay))
-			return attentuation * SampleColor(scatteredRay, hitable_list, depth + 1);
-		else
-			return vec3(0.0f);
-    }   
-    else
+            return attentuation * SampleColor(scatteredRay, hitable_list, depth + 1);
+		else    // if not scatterd -> absorb this ray (if angel > 90) <- don't scatter below the surface
+			return vec3(0.0f); 
+    }
+    else // if doesn't hit any object return the background color (environment)
     {
         vec3 ray_dir = unit_vector(ray.Direction());
         float t = 0.5 * (ray_dir.y() + 1.0);            // convert from [-1, 1] to [0, 1]
@@ -70,13 +70,14 @@ int main()
     const int width = 400, height = 200, samples = 100;
     
     //----------- Objects in the scene ------------//
-    Hitable* list[4];
-    list[0] = new Sphere(vec3(0, 0, -1.9f), .9f, new Lambert(vec3(.8f, .3f, .3f)));
-    list[1] = new Sphere(vec3(0, -205.5f, -1.9f), 200.f, new Lambert(vec3(.8f, .8f, 0)));
-    list[2] = new Sphere(vec3(-1.8f, 0, -1.9f), .8f, new Metal(vec3(.8f, .6f, 0.2f)));
-    list[3] = new Sphere(vec3(1.8f, 0, -1.9f), .8f, new Metal(vec3(.8f, .8f, .8f)));
+    Surface* list[5];
+    list[0] = new Sphere(vec3(0, 0, -1.4f), .9f,         new Lambert(vec3(.8f, .3f, .3f)) );
+    list[1] = new Sphere(vec3(0, -200.9f, -1.4f), 200.f, new Lambert(vec3(.8f, .8f, 0)) );
+    list[2] = new Sphere(vec3(-1.8f, 0, -1.4f), .9f,     new Dielectric(1.5f) );
+    list[3] = new Sphere(vec3(1.8f, 0, -1.4f), .9f,      new Metal(vec3(.8f, .6f, 0.2f), 0.5f) );
+    list[4] = new Sphere(vec3(-1.8f, 0, -1.4f), -.85f,    new Dielectric(1.6f) );
 
-    HitableList* scene= new HitableList(list, 4);
+    Surface* scene= new HitableList(list, 5);
     
     //----------------- Camera --------------------//  
     Camera cam(vec3(0), vec3(-4.f, -2.f, -1.f), vec3(8.f, 0.f, 0.f), vec3(0.f, 4.f, 0));

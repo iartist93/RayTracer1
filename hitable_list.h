@@ -1,17 +1,17 @@
 #pragma once
 
-#include "hitable.h"
+#include "surface.h"
 
-class HitableList : public Hitable
+class HitableList : public Surface
 {
 public:
     HitableList(){}
-    HitableList(Hitable** list, int size): list(list), size(size) {}
+    HitableList(Surface** list, int size): list(list), size(size) {}
     virtual bool Hit(const Ray& ray, float t_min, float t_max, OUT HitResult& hitResult) const;
     int Size() const {return size; }
 
 private:
-    Hitable **list;             // array of pointers to Hitable objects
+    Surface **list;             // array of pointers to Surface objects
     int size;
 };
 

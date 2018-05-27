@@ -1,8 +1,8 @@
 #pragma once
 
-#include "hitable.h"
+#include "Surface.h"
 
-class Sphere : public Hitable
+class Sphere : public Surface
 {
 public:
     Sphere() {}
@@ -27,7 +27,7 @@ bool Sphere::Hit(const Ray& ray, float t_min, float t_max, OUT HitResult& hitRes
     float b = dot(B, A_minus_C);
     float c = dot(A_minus_C, A_minus_C) - (radius * radius);
     
-    float discriminator = (b*b) - (a*c);
+    float discriminator = (b*b) - (a*c);            // we eliminate 2's from all equations including [B]
 
     if(discriminator > 0)
     {

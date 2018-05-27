@@ -13,10 +13,10 @@ struct HitResult
     float t;
     vec3  p;
     vec3  n;
-    Material* matPtr;       // to the hitable object's material
+    Material* matPtr;       // to the Surface material
 };
 
-class Hitable
+class Surface
 {
 public:
     virtual bool Hit(const Ray& ray, float t_min, float t_max, OUT HitResult& hitResult) const = 0;
