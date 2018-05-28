@@ -10,10 +10,7 @@ public:
      */
     Camera(float inWidth, float inHeight, float fov, vec3 inOrigin, vec3 lookAt)
     {
-        vec3 right;   
-        vec3 up     = vec3(0, 1, 0);      // world up by default
-        vec3 forward;       
-
+        up = vec3(0.f, 1.f, 0.f);     // by default
         origin  = inOrigin;
         forward = unit_vector(origin - lookAt);
         right   = unit_vector(cross(up, forward));              // the order is R, U, F
@@ -26,18 +23,23 @@ public:
         float halfWidth  = halfHeight * aspectRatio;
 
         lower_left  = origin - halfWidth*right - halfHeight*up - 1.f*forward;       // in the direction if -z (-foward = -W)
-        width       = 2.f * halfWidth  * right;     // length + direction
-        height      = 2.f * halfHeight * up;
+        width       = 2.f * halfWidth;    
+        height      = 2.f * halfHeight;
     }
 
     Ray RayCast(float x, float y)
     {
-        return Ray(origin, (lower_left + x*width + y*height) - origin);         // (point - orgin) to get the directional vector from the origin to that point
+        vec3 target = lower_left + (x*width)*right + (y*height)*up;
+        return Ray(origin, unit_vector(target - origin));         // (point - orgin) to get the directional vector from the origin to that point
     }
 
 private:
     vec3 origin;
     vec3 lower_left;
-    vec3 width;
-    vec3 height;
+    float width;
+    float height;
+    
+    vec3 right;
+    vec3 up;
+    vec3 forward;
 };
