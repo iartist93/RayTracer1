@@ -75,12 +75,12 @@ int main()
     list[1] = new Sphere(vec3(0, -200.9f, -1.4f), 200.f, new Lambert(vec3(.8f, .8f, 0)) );
     list[2] = new Sphere(vec3(-1.8f, 0, -1.4f), .9f,     new Dielectric(1.5f) );
     list[3] = new Sphere(vec3(1.8f, 0, -1.4f), .9f,      new Metal(vec3(.8f, .6f, 0.2f), 0.5f) );
-    list[4] = new Sphere(vec3(-1.8f, 0, -1.4f), -.85f,    new Dielectric(1.6f) );
+    list[4] = new Sphere(vec3(-1.825f, 0, -1.4f), -.85f, new Dielectric(1.5f) );
 
     Surface* scene= new HitableList(list, 5);
     
     //----------------- Camera --------------------//  
-    Camera cam(vec3(0), vec3(-4.f, -2.f, -1.f), vec3(8.f, 0.f, 0.f), vec3(0.f, 4.f, 0));
+    Camera cam(width, height, 160.f);
 
     // -------------- rendering loop --------------//
 

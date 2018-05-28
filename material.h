@@ -116,7 +116,7 @@ public:
     {  
         outAttentuation = vec3(1.f); 
         vec3 reflected = Reflect(inRay.Direction(), inHitResult.n);
-        float cosTheta;     // the Theta in air 
+        float cosTheta;   
 
         /// depends on whether the ray in incoming from air to material or outgoing
         vec3 normalVec;
@@ -129,15 +129,17 @@ public:
         } else    // outgoing ray (from inside to outside) <-- in case of the previous ray was refracted
         {
             normalVec = -inHitResult.n;
-            ni_over_nt = nt;
-            cosTheta = dot(inRay.Direction(), inHitResult.n) / inRay.Direction().length();
-            cosTheta = sqrt(1- nt*nt*(1-cosTheta*cosTheta));
+            ni_over_nt = nt/1.f;
+            cosTheta = -dot(inRay.Direction(), inHitResult.n) / inRay.Direction().length();
+
+            // as FersnelSchlick fails when ni > n2, so we swap cos(Theta i) with cos(Theta t)
+            cosTheta = sqrt(1 - nt*nt*(1 - cosTheta*cosTheta));        // Page 324 .. convert Phi into Theta
         }
 
         /// Get the probababilty of reflection
         vec3 refracted;
         float R;        // reflectivity proabablity
-        if(Refract(inRay.Direction(), normalVec, ni_over_nt, refracted))      // flip the normal, flip the ni_over_nt
+        if(Refract(inRay.Direction(), normalVec, ni_over_nt, refracted)) 
         {
             R = SchlickReflectivity(nt, cosTheta);
            // std::cout << "Refracted" << std::endl;
