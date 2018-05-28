@@ -80,7 +80,7 @@ int main()
     Surface* scene= new HitableList(list, 5);
     
     //----------------- Camera --------------------//  
-    Camera cam(width, height, 160.f);
+    Camera cam(width, height, 75.f, vec3(-2.f, 2.f, 1.f), vec3(0, 0, -1.f));
 
     // -------------- rendering loop --------------//
 
