@@ -41,9 +41,9 @@ public:
         float aspectRatio = inWidth/inHeight;
         float halfWidth  = halfHeight * aspectRatio;
 
-        lower_left  = origin - halfWidth*right - halfHeight*up - focal_distance * forward;       // in the direction if -z (-foward = -W)
-        width       = 2.f * halfWidth;    
-        height      = 2.f * halfHeight;
+        lower_left  = origin -  halfWidth*focal_distance*right - halfHeight*focal_distance*up - focal_distance * forward;       // in the direction if -z (-foward = -W)
+        width       = 2.f * halfWidth  * focal_distance;    
+        height      = 2.f * halfHeight * focal_distance;
     }
 
     Ray RayCast(float x, float y)

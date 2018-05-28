@@ -67,22 +67,22 @@ int main()
 
     std::ofstream image;
     image.open("output.ppm");
-    const int width = 400, height = 200, samples = 100;
+    const int width = 800, height = 600, samples = 100;
     
     //----------- Objects in the scene ------------//
     Surface* list[5];
-    list[0] = new Sphere(vec3(0, 0, -1.4f), .9f,         new Lambert(vec3(.8f, .3f, .3f)) );
-    list[1] = new Sphere(vec3(0, -200.9f, -1.4f), 200.f, new Lambert(vec3(.8f, .8f, 0)) );
-    list[2] = new Sphere(vec3(-1.8f, 0, -1.4f), .9f,     new Dielectric(1.5f) );
-    list[3] = new Sphere(vec3(1.8f, 0, -1.4f), .9f,      new Metal(vec3(.8f, .6f, 0.2f), 0.5f) );
-    list[4] = new Sphere(vec3(-1.825f, 0, -1.4f), -.85f, new Dielectric(1.5f) );
+    list[0] = new Sphere(vec3(0, 0, -1.5f), 1.8f,         new Lambert(vec3(.8f, .3f, .3f)) );
+    list[1] = new Sphere(vec3(0, -600.9f, -1.5f), 600.f, new Lambert(vec3(.8f, .8f, 0)) );
+    list[2] = new Sphere(vec3(-3.6f, 0, -1.54f), 1.8f,     new Dielectric(1.5f) );
+    list[3] = new Sphere(vec3(3.6f, 0, -1.5f), 1.8f,      new Metal(vec3(.8f, .6f, 0.2f), 0.5f) );
+    list[4] = new Sphere(vec3(-3.65f, 0, -1.5f), -1.7f, new Dielectric(1.5f) );
 
     Surface* scene= new HitableList(list, 5);
     
     //----------------- Camera --------------------//  
-    vec3 cameraOrigin = vec3(3.f, 3.f, 2.f);
+    vec3 cameraOrigin = vec3(6.f, 6.f, 4.f);
     vec3 cameraLookAt = vec3(0, 0, -1.f);
-    Camera cam(width, height, 120.f, cameraOrigin, cameraLookAt, 2.f, (cameraLookAt-cameraOrigin).length());
+    Camera cam(width, height, 60.f, cameraOrigin, cameraLookAt, 2.f, (cameraLookAt-cameraOrigin).length());
 
     // -------------- rendering loop --------------//
 
