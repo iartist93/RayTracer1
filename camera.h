@@ -1,6 +1,21 @@
 #pragma once
 
 #include "ray.h"
+
+/**
+ * return a point [-1, 1] on a disk, 
+ * simulating a rondom lens ray's origin
+ */
+vec3 RandomPointOnDisk()
+{
+    vec3 p;
+    do {
+        // convert from range [0, 1] to range [-1, 1]
+        p = 2.f*vec3(rand()%10/10.f, rand()%10/10.f, 0) - vec3(1.f, 1.f, 0.f);
+    } while(dot(p, p) >=1); // x^2 + y^2 < 1 to be inside the circle
+    return p;
+}
+
 class Camera
 {
 public:
@@ -8,8 +23,12 @@ public:
      * width and height are the image's pixel
      * FOV in degree 
      */
-    Camera(float inWidth, float inHeight, float fov, vec3 inOrigin, vec3 lookAt)
+    Camera(float inWidth, float inHeight, float fov, vec3 inOrigin, vec3 lookAt, float inAperture, float inFocalDistance)
     {
+        lens_radius = inAperture/2.f;
+        aperture = inAperture;
+        focal_distance = inFocalDistance;
+
         up = vec3(0.f, 1.f, 0.f);     // by default
         origin  = inOrigin;
         forward = unit_vector(origin - lookAt);
@@ -22,24 +41,31 @@ public:
         float aspectRatio = inWidth/inHeight;
         float halfWidth  = halfHeight * aspectRatio;
 
-        lower_left  = origin - halfWidth*right - halfHeight*up - 1.f*forward;       // in the direction if -z (-foward = -W)
+        lower_left  = origin - halfWidth*right - halfHeight*up - focal_distance * forward;       // in the direction if -z (-foward = -W)
         width       = 2.f * halfWidth;    
         height      = 2.f * halfHeight;
     }
 
     Ray RayCast(float x, float y)
     {
-        vec3 target = lower_left + (x*width)*right + (y*height)*up;
-        return Ray(origin, unit_vector(target - origin));         // (point - orgin) to get the directional vector from the origin to that point
+        vec3 lens_rand = lens_radius * RandomPointOnDisk();
+        vec3 offset = lens_rand.x() * right + lens_rand.y() * up;
+        vec3 target = lower_left + (x*width)*right + (y*height)*up -offset;
+        return Ray(origin + offset, unit_vector(target - origin));         // (point - orgin) to get the directional vector from the origin to that point
     }
 
 private:
     vec3 origin;
     vec3 lower_left;
+
     float width;
     float height;
     
     vec3 right;
     vec3 up;
     vec3 forward;
+
+    float aperture;
+    float focal_distance;
+    float lens_radius;
 };
