@@ -23,11 +23,13 @@ public:
      * width and height are the image's pixel
      * FOV in degree 
      */
-    Camera(float inWidth, float inHeight, float fov, vec3 inOrigin, vec3 lookAt, float inAperture, float inFocalDistance)
+    Camera(float inWidth, float inHeight, float fov, vec3 inOrigin, vec3 lookAt, float inAperture, float inFocalLength, float inDistanceFromLens)
     {
         lens_radius = inAperture/2.f;
         aperture = inAperture;
-        focal_distance = inFocalDistance;
+        f = inFocalLength;
+        s = inDistanceFromLens;
+
 
         up = vec3(0.f, 1.f, 0.f);     // by default
         origin  = inOrigin;
@@ -41,9 +43,9 @@ public:
         float aspectRatio = inWidth/inHeight;
         float halfWidth  = halfHeight * aspectRatio;
 
-        lower_left  = origin -  halfWidth*focal_distance*right - halfHeight*focal_distance*up - focal_distance * forward;       // in the direction if -z (-foward = -W)
-        width       = 2.f * halfWidth  * focal_distance;    
-        height      = 2.f * halfHeight * focal_distance;
+        lower_left  = origin -  halfWidth*((f-s)/f)*right - halfHeight*((f-s)/f)*up - s * forward;       // in the direction if -z (-foward = -W)
+        width       = 2.f * halfWidth  * ((f-s)/f);    
+        height      = 2.f * halfHeight * ((f-s)/f);
     }
 
     Ray RayCast(float x, float y)
@@ -66,6 +68,7 @@ private:
     vec3 forward;
 
     float aperture;
-    float focal_distance;
+    float f;            // focal lens
+    float s;            // distance from lens
     float lens_radius;
 };

@@ -4,6 +4,7 @@
 #include <string>
 #include <ctime>    // For time()
 #include <cstdlib>  // For srand() and rand()
+#include <sstream>
 
 #include "vec3.h"
 #include "ray.h"
@@ -14,6 +15,54 @@
 
 
 #define OUT 
+
+void OutputPPM(std::string input, std::string output, int width, int height)
+{
+    std::ifstream in_image(input, std::ifstream::in);
+    std::vector<std::string> imageLines;
+    std::string line;
+    for(int h = 0; h < height; h++)
+    {
+        std::getline(in_image, line);
+        imageLines.push_back(line);
+    }
+    in_image.close();
+
+    std::ofstream out_image;
+    out_image.open(output);
+    out_image << "P3\n" << width << " " << height << "\n255\n";
+
+    for(int h = 0; h < height; h++)
+    {
+        std::string line = imageLines[h];
+        std::stringstream ss(line);
+
+        //std::cout << line.size() << std::endl;
+
+        std::vector<int> pixels;
+        int pixel;
+        while(ss >> pixel)
+        {
+            pixels.push_back(pixel);
+        }
+
+
+        // remember the values are written as   R G B so we reverse then in the same order
+        for(int i = 1; i <= pixels.size()/3; i++)
+        {
+            for(int j = 0; j < 3; j++)
+            {
+                auto it = pixels.end() - 3*i + j;
+                out_image << *it << " ";
+                it++;      
+            }
+        }
+        out_image << std::endl;
+    
+        //out_image << imageLines[h] << std::endl;
+    }
+    out_image.close();
+}
 
 void ReversePPM(std::string input, std::string output, int width, int height)
 {
@@ -82,7 +131,11 @@ int main()
     //----------------- Camera --------------------//  
     vec3 cameraOrigin = vec3(6.f, 6.f, 4.f);
     vec3 cameraLookAt = vec3(0, 0, -1.f);
-    Camera cam(width, height, 60.f, cameraOrigin, cameraLookAt, 2.f, (cameraLookAt-cameraOrigin).length());
+    
+    // more in equation in page 69 Realistic RayTracer
+    float focalLength = 2.f;       // f 
+    float distanceFromLength  = (cameraLookAt-cameraOrigin).length(); // s
+    Camera cam(width, height, 120.f, cameraOrigin, cameraLookAt, 2.f, focalLength, distanceFromLength);
 
     // -------------- rendering loop --------------//
 
@@ -115,7 +168,8 @@ int main()
     }
     image.close();
 
-    ReversePPM("output.ppm", "output2.ppm", width, height);
+    OutputPPM("output.ppm", "output2.ppm", width, height);
+    //ReversePPM("output.ppm", "output2.ppm", width, height);
 }
 
 
