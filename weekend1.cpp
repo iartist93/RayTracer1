@@ -12,9 +12,13 @@
 #include "hitable_list.h"
 #include "camera.h"
 #include "material.h"
-
+#include <chrono>
 
 #define OUT 
+
+#define MAXDEPTH 50
+#define MAXSAMPLE 100
+
 
 void OutputPPM(std::string input, std::string output, int width, int height)
 {
@@ -89,7 +93,7 @@ void ReversePPM(std::string input, std::string output, int width, int height)
     out_image.close();
 }
 
-vec3 SampleColor(const Ray & ray, Surface* hitable_list, int depth = 0)
+vec3 SampleColor(const Ray & ray, HitableList* hitable_list, int depth = 0)
 {
     HitResult hitResult;
     
@@ -97,7 +101,7 @@ vec3 SampleColor(const Ray & ray, Surface* hitable_list, int depth = 0)
     {
         Ray scatteredRay;
         vec3 attentuation;
-		if (depth < 50 && hitResult.matPtr->Scatter(ray, hitResult, attentuation, scatteredRay))
+		if (depth < MAXDEPTH && hitResult.matPtr->Scatter(ray, hitResult, attentuation, scatteredRay))
             return attentuation * SampleColor(scatteredRay, hitable_list, depth + 1);
 		else    // if not scatterd -> absorb this ray (if angel > 90) <- don't scatter below the surface
 			return vec3(0.0f); 
@@ -110,8 +114,47 @@ vec3 SampleColor(const Ray & ray, Surface* hitable_list, int depth = 0)
     }
 }
 
+HitableList* PopulateRandomScene(int n)
+{
+    Surface** spheresList = new Surface*[n+1];
+    spheresList[0] = new Sphere(vec3(0, -1000.f, 0), 1000.f, new Lambert(vec3(0.5f, 0.5f, 0.6f)));
+
+    int i = 1;
+    for(int a = -11; a < 11; a++)
+    {
+        for(int b = -11; b < 11; b++)
+        {
+            float randMat = rand()%10/10.0f;
+            vec3 center(a + rand()%10/10.f, 0.2f, b + rand()%10/10.f);
+            
+            if(randMat < 0.8f)
+            {
+                spheresList[i++] = new Sphere(center, 0.2f, new Lambert(vec3(rand()%10/10.f, rand()%10/10.f, rand()%10/10.f)));
+            } 
+            else if(randMat < 0.95)
+            {
+                spheresList[i++] = new Sphere(center, 0.2f, 
+                new Metal(vec3(0.5*(1-rand()%10/10.f), 0.5*(1-rand()%10/10.f), 0.5*(1-rand()%10/10.f)),
+                            0.5f*(rand()%10/10.f)));
+            }
+            else
+            {
+                spheresList[i++] = new Sphere(center, 0.2f, new Dielectric(1.5f));
+            }
+        }
+    }
+    
+    spheresList[i++] = new Sphere(vec3(-4.f, 1.f, 0), 1.f, new Metal(vec3(0.7f, 0.6f, 0.5f), 0.0f));
+    spheresList[i++] = new Sphere(vec3(4.f,  1.f, 0), 1.f, new Lambert(vec3(0.4f, 0.2f, 0.1f)));
+    spheresList[i++] = new Sphere(vec3(0,    1.f, 0), 1.f, new Dielectric(1.5f));
+    
+    return new HitableList(spheresList, i);
+}
+
 int main()
 {
+    auto startTime = std::chrono::steady_clock::now();
+
 	srand((unsigned)time(NULL));
 
     std::ofstream image;
@@ -119,15 +162,17 @@ int main()
     const int width = 800, height = 600, samples = 100;
     
     //----------- Objects in the scene ------------//
-    Surface* list[5];
-    list[0] = new Sphere(vec3(0, 0, -1.5f), 1.8f,         new Lambert(vec3(.8f, .3f, .3f)) );
-    list[1] = new Sphere(vec3(0, -600.9f, -1.5f), 600.f, new Lambert(vec3(.8f, .8f, 0)) );
-    list[2] = new Sphere(vec3(-3.6f, 0, -1.54f), 1.8f,     new Dielectric(1.5f) );
-    list[3] = new Sphere(vec3(3.6f, 0, -1.5f), 1.8f,      new Metal(vec3(.8f, .6f, 0.2f), 0.5f) );
-    list[4] = new Sphere(vec3(-3.65f, 0, -1.5f), -1.7f, new Dielectric(1.5f) );
+    // Surface* list[5];
+    // list[0] = new Sphere(vec3(0, 0, -1.5f), 1.8f,         new Lambert(vec3(.8f, .3f, .3f)) );
+    // list[1] = new Sphere(vec3(0, -600.9f, -1.5f), 600.f, new Lambert(vec3(.8f, .8f, 0)) );
+    // list[2] = new Sphere(vec3(-3.6f, 0, -1.54f), 1.8f,     new Dielectric(1.5f) );
+    // list[3] = new Sphere(vec3(3.6f, 0, -1.5f), 1.8f,      new Metal(vec3(.8f, .6f, 0.2f), 0.5f) );
+    // list[4] = new Sphere(vec3(-3.65f, 0, -1.5f), -1.7f, new Dielectric(1.5f) );
 
-    Surface* scene= new HitableList(list, 5);
-    
+    // Surface* scene= new HitableList(list, 5);
+
+    HitableList* scene= PopulateRandomScene(500);
+
     //----------------- Camera --------------------//  
     vec3 cameraOrigin = vec3(6.f, 6.f, 4.f);
     vec3 cameraLookAt = vec3(0, 0, -1.f);
@@ -136,7 +181,7 @@ int main()
     float focalLength = 2.f;       // f 
     float distanceFromLength  = (cameraLookAt-cameraOrigin).length(); // s
     Camera cam(width, height, 120.f, cameraOrigin, cameraLookAt, 2.f, focalLength, distanceFromLength);
-
+    
     // -------------- rendering loop --------------//
 
     for(int col = 0; col < height; col++)
@@ -144,7 +189,7 @@ int main()
         for(int row = 0; row < width; row++)
         {
             vec3 color = vec3(0.0f);
-            for(int s = 0; s < samples; s++)
+            for(int s = 0; s < MAXSAMPLE; s++)
             {
                 float u = float(row + (rand() % 10) / 10.f) / float(width);
                 float v = float(col + (rand() % 10) / 10.f) / float(height);
@@ -154,7 +199,7 @@ int main()
                 color += SampleColor(ray, scene, 0);           // sample a color from a scene using a ray
             }
 
-            color /= float(samples);       // averaging
+            color /= float(MAXSAMPLE);       // averaging
             color = vec3(sqrt(color[0]), sqrt(color[1]), sqrt(color[2]));
 
             color[0] *= 255.99f;
@@ -170,6 +215,10 @@ int main()
 
     OutputPPM("output.ppm", "output2.ppm", width, height);
     //ReversePPM("output.ppm", "output2.ppm", width, height);
+
+    auto endTime = std::chrono::steady_clock::now();
+
+    std::cout << "Time : " << std::chrono::duration<double>(endTime-startTime).count();
 }
 
 
