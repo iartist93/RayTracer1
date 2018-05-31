@@ -16,8 +16,8 @@
 
 #define OUT 
 
-#define MAXDEPTH 50
-#define MAXSAMPLE 100
+#define MAXDEPTH 4
+#define MAXSAMPLE 2
 
 
 void OutputPPM(std::string input, std::string output, int width, int height)
@@ -127,26 +127,26 @@ HitableList* PopulateRandomScene(int n)
             float randMat = rand()%10/10.0f;
             vec3 center(a + rand()%10/10.f, 0.2f, b + rand()%10/10.f);
             
-            if(randMat < 0.8f)
+            if((center - vec3(4.f, 0.2f, 0.f)).length() > 1.5f)  // away from the front large sphere
             {
-                spheresList[i++] = new Sphere(center, 0.2f, new Lambert(vec3(rand()%10/10.f, rand()%10/10.f, rand()%10/10.f)));
-            } 
-            else if(randMat < 0.95)
-            {
-                spheresList[i++] = new Sphere(center, 0.2f, 
-                new Metal(vec3(0.5*(1-rand()%10/10.f), 0.5*(1-rand()%10/10.f), 0.5*(1-rand()%10/10.f)),
-                            0.5f*(rand()%10/10.f)));
-            }
-            else
-            {
-                spheresList[i++] = new Sphere(center, 0.2f, new Dielectric(1.5f));
+                if(randMat < 0.8f) {
+                    spheresList[i++] = new Sphere(center, 0.2f, new Lambert(vec3(rand()%10/10.f, rand()%10/10.f, rand()%10/10.f)));
+                } 
+                else if(randMat < 0.95) {
+                    spheresList[i++] = new Sphere(center, 0.2f, 
+                    new Metal(vec3(0.5*(1-rand()%10/10.f), 0.5*(1-rand()%10/10.f), 0.5*(1-rand()%10/10.f)),
+                                0.5f*(rand()%10/10.f)));
+                }
+                else {
+                    spheresList[i++] = new Sphere(center, 0.2f, new Dielectric(1.5f));
+                }
             }
         }
     }
     
-    spheresList[i++] = new Sphere(vec3(-4.f, 1.f, 0), 1.f, new Metal(vec3(0.7f, 0.6f, 0.5f), 0.0f));
-    spheresList[i++] = new Sphere(vec3(4.f,  1.f, 0), 1.f, new Lambert(vec3(0.4f, 0.2f, 0.1f)));
-    spheresList[i++] = new Sphere(vec3(0,    1.f, 0), 1.f, new Dielectric(1.5f));
+    spheresList[i++] = new Sphere(vec3(4.f, 1.5f, 0), 1.5f, new Metal(vec3(0.7f, 0.6f, 0.5f), 0.0f));
+    spheresList[i++] = new Sphere(vec3(-4.f,  1.5f, 0), 1.5f, new Lambert(vec3(0.4f, 0.2f, 0.1f)));
+    spheresList[i++] = new Sphere(vec3(0,    1.5f, 0), 1.5f, new Dielectric(1.5f));
     
     return new HitableList(spheresList, i);
 }
@@ -174,14 +174,18 @@ int main()
     HitableList* scene= PopulateRandomScene(500);
 
     //----------------- Camera --------------------//  
-    vec3 cameraOrigin = vec3(6.f, 6.f, 4.f);
-    vec3 cameraLookAt = vec3(0, 0, -1.f);
+    vec3 cameraOrigin = vec3(17.5f, 2.8f, 5.8f);
+    vec3 cameraLookAt = vec3(0, 0, 0.f);
     
     // more in equation in page 69 Realistic RayTracer
-    float focalLength = 2.f;       // f 
-    float distanceFromLength  = (cameraLookAt-cameraOrigin).length(); // s
-    Camera cam(width, height, 120.f, cameraOrigin, cameraLookAt, 2.f, focalLength, distanceFromLength);
+    float focalLength = 22.f;       // f 
+    float distanceFromLength  = 10.f; // s
+    Camera cam(float(width), float(height), 20.f, cameraOrigin, cameraLookAt, 0.1f, focalLength, distanceFromLength);
     
+    // 1- (s) can't be smaller than (f)
+    // 2- apature should be very small
+    std::cout << distanceFromLength << std::endl;
+
     // -------------- rendering loop --------------//
 
     for(int col = 0; col < height; col++)
@@ -213,8 +217,8 @@ int main()
     }
     image.close();
 
-    OutputPPM("output.ppm", "output2.ppm", width, height);
-    //ReversePPM("output.ppm", "output2.ppm", width, height);
+    // OutputPPM("output.ppm", "output2.ppm", width, height);
+    ReversePPM("output.ppm", "output2.ppm", width, height);
 
     auto endTime = std::chrono::steady_clock::now();
 
@@ -231,3 +235,5 @@ int main()
 // each pixel will have many many samples contributing to the final color
 // we model in the camera space (-2, -1, -1) to (2, 1, -1)
 // 
+
+

@@ -34,25 +34,25 @@ public:
         up = vec3(0.f, 1.f, 0.f);     // by default
         origin  = inOrigin;
         forward = unit_vector(origin - lookAt);
-        right   = unit_vector(cross(up, forward));              // the order is R, U, F
-        up      = unit_vector(cross(forward, right));
+        right   = (cross(up, forward));              // the order is R, U, F
+        up      = (cross(forward, right));
 
         float theta = fov * M_PI / 180.f;
-        float halfHeight = tan(theta/2);
+        float halfHeight = tan(theta/2.f);
 
         float aspectRatio = inWidth/inHeight;
         float halfWidth  = halfHeight * aspectRatio;
 
-        lower_left  = origin -  halfWidth*((f-s)/f)*right - halfHeight*((f-s)/f)*up - s * forward;       // in the direction if -z (-foward = -W)
-        width       = 2.f * halfWidth  * ((f-s)/f);    
-        height      = 2.f * halfHeight * ((f-s)/f);
+        lower_left  = origin -  halfWidth*s*right - halfHeight*s*up - s * forward;       // in the direction if -z (-foward = -W)
+        width       = 2.f * halfWidth  * s;    
+        height      = 2.f * halfHeight * s;
     }
 
     Ray RayCast(float x, float y)
     {
         vec3 lens_rand = lens_radius * RandomPointOnDisk();
         vec3 offset = lens_rand.x() * right + lens_rand.y() * up;
-        vec3 target = lower_left + (x*width)*right + (y*height)*up -offset;
+        vec3 target = lower_left + (x*width)*right + (y*height)*up - offset;
         return Ray(origin + offset, unit_vector(target - origin));         // (point - orgin) to get the directional vector from the origin to that point
     }
 
