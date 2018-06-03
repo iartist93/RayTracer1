@@ -2,6 +2,7 @@
 
 #include "Surface.h"
 #include "ray.h"
+#include "texture.h"
 
 vec3 RandomPointUnitSphere()
 {
@@ -62,17 +63,20 @@ class Lambert : public Material
 {
 public:
     Lambert() {}
-    Lambert(const vec3& albedo): albedo(albedo) {}
+    Lambert(Texture* albedo): albedo(albedo) {}
     virtual bool Scatter(const Ray& inRay, const HitResult& inHitResult, vec3& outAttentuation, Ray& outScatteredRay) const
     {
         vec3 target = inHitResult.p + inHitResult.n + RandomPointUnitSphere();
         outScatteredRay = Ray(inHitResult.p, target - inHitResult.p);
-        outAttentuation = albedo;
+        outAttentuation = albedo->Value(inHitResult.u, inHitResult.v, inHitResult.p);
+        
+        // std::cout << "U = " << inHitResult.u  << " V = " << inHitResult.v << std::endl;
+
         return true;
     }
 
 private:
-    vec3 albedo;
+    Texture* albedo;
 };
 
 

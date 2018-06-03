@@ -5,20 +5,21 @@
 #include <ctime>    // For time()
 #include <cstdlib>  // For srand() and rand()
 #include <sstream>
-
+#include <chrono>   // for calc. execution time
+   
 #include "vec3.h"
 #include "ray.h"
 #include "sphere.h"
 #include "hitable_list.h"
 #include "camera.h"
 #include "material.h"
-#include <chrono>
+#include "texture.h"
+#include "common.h"
 
 #define OUT 
 
 #define MAXDEPTH 4
 #define MAXSAMPLE 2
-
 
 void OutputPPM(std::string input, std::string output, int width, int height)
 {
@@ -117,7 +118,8 @@ vec3 SampleColor(const Ray & ray, HitableList* hitable_list, int depth = 0)
 HitableList* PopulateRandomScene(int n)
 {
     Surface** spheresList = new Surface*[n+1];
-    spheresList[0] = new Sphere(vec3(0, -1000.f, 0), 1000.f, new Lambert(vec3(0.5f, 0.5f, 0.6f)));
+    spheresList[0] = new Sphere(vec3(0, -1000.f, 0), 1000.f, new Lambert(
+        new CheckerTexture(new Color(vec3(.2f, .3f, .1f)), new Color(vec3(.9, .9, .9)) )));
 
     int i = 1;
     for(int a = -11; a < 11; a++)
@@ -130,7 +132,7 @@ HitableList* PopulateRandomScene(int n)
             if((center - vec3(4.f, 0.2f, 0.f)).length() > 1.5f)  // away from the front large sphere
             {
                 if(randMat < 0.8f) {
-                    spheresList[i++] = new Sphere(center, 0.2f, new Lambert(vec3(rand()%10/10.f, rand()%10/10.f, rand()%10/10.f)));
+                    spheresList[i++] = new Sphere(center, 0.2f, new Lambert(new Color(vec3(rand()%10/10.f, rand()%10/10.f, rand()%10/10.f))));
                 } 
                 else if(randMat < 0.95) {
                     spheresList[i++] = new Sphere(center, 0.2f, 
@@ -144,10 +146,15 @@ HitableList* PopulateRandomScene(int n)
         }
     }
     
-    spheresList[i++] = new Sphere(vec3(4.f, 1.5f, 0), 1.5f, new Metal(vec3(0.7f, 0.6f, 0.5f), 0.0f));
-    spheresList[i++] = new Sphere(vec3(-4.f,  1.5f, 0), 1.5f, new Lambert(vec3(0.4f, 0.2f, 0.1f)));
-    spheresList[i++] = new Sphere(vec3(0,    1.5f, 0), 1.5f, new Dielectric(1.5f));
+    spheresList[i++] = new Sphere(vec3(4.f, 1.f, 0), 1.f, new Metal(vec3(0.7f, 0.6f, 0.5f), 0.0f));
+    spheresList[i++] = new Sphere(vec3(0,    1.f, 0), 1.f, new Dielectric(1.5f));
     
+    int width, height, noChannels;
+    unsigned char *imageData = LoadTexture("pavement.jpg", width, height, noChannels);
+    std::cout << width << " " << height << " " << noChannels << std::endl;
+    spheresList[i++] = new Sphere(vec3(-4.f,  1.f, 0), 1.f, new Lambert(new ImageTexture(imageData, width, height)));
+
+
     return new HitableList(spheresList, i);
 }
 
@@ -159,7 +166,7 @@ int main()
 
     std::ofstream image;
     image.open("output.ppm");
-    const int width = 800, height = 600, samples = 100;
+    const int width = 1200, height = 800, samples = 100;
     
     //----------- Objects in the scene ------------//
     // Surface* list[5];
@@ -174,7 +181,7 @@ int main()
     HitableList* scene= PopulateRandomScene(500);
 
     //----------------- Camera --------------------//  
-    vec3 cameraOrigin = vec3(17.5f, 2.8f, 5.8f);
+    vec3 cameraOrigin = vec3(13.f, 2.f, 3.f);
     vec3 cameraLookAt = vec3(0, 0, 0.f);
     
     // more in equation in page 69 Realistic RayTracer
