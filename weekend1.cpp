@@ -10,16 +10,26 @@
 #include "vec3.h"
 #include "ray.h"
 #include "sphere.h"
+#include "moving_sphere.h"
 #include "hitable_list.h"
 #include "camera.h"
 #include "material.h"
+#include "rectangle.h"
 #include "texture.h"
 #include "common.h"
-
+#include "flip_normals.h"
+#include "box.h"
 #define OUT 
 
-#define MAXDEPTH 4
-#define MAXSAMPLE 2
+#define MAXDEPTH 50
+#define MAXSAMPLE 100
+
+#define _CRT_RAND_S  
+#include <stdlib.h>  
+#include <stdio.h>  
+#include <limits.h>  
+
+
 
 void OutputPPM(std::string input, std::string output, int width, int height)
 {
@@ -97,21 +107,30 @@ void ReversePPM(std::string input, std::string output, int width, int height)
 vec3 SampleColor(const Ray & ray, HitableList* hitable_list, int depth = 0)
 {
     HitResult hitResult;
-    
-    if(hitable_list->Hit(ray, 0.001, 100000000, hitResult))
+    if(hitable_list->Hit(ray, 0.1f, 100000000, hitResult))
     {
         Ray scatteredRay;
         vec3 attentuation;
-		if (depth < MAXDEPTH && hitResult.matPtr->Scatter(ray, hitResult, attentuation, scatteredRay))
-            return attentuation * SampleColor(scatteredRay, hitable_list, depth + 1);
-		else    // if not scatterd -> absorb this ray (if angel > 90) <- don't scatter below the surface
-			return vec3(0.0f); 
+        vec3 emittedColor = hitResult.matPtr->Emitted(hitResult.u, hitResult.v, hitResult.p);
+
+		if (depth < MAXDEPTH && hitResult.matPtr->Scatter(ray, hitResult, attentuation, scatteredRay)) {
+            //std::cout << hitResult.n.x() << " "  << hitResult.n.y() << " "  << hitResult.n.z() << std::endl;
+            //std::cout << scatteredRay.Direction().x() << std::endl; 
+            return emittedColor + attentuation * SampleColor(scatteredRay, hitable_list, depth + 1);
+        }
+		else   
+            // if not scatterd 
+            //      -> absorb this ray (if angel > 90) <- don't scatter below the surface
+            //      -> if it emit color return that color
+            //std::cout << "Emitted " << emittedColor.x() << " "  << emittedColor.y() << " "  << emittedColor.z() << std::endl;
+			return emittedColor;
     }
-    else // if doesn't hit any object return the background color (environment)
+    else // if doesn't hit any object return the background color (black in this case)
     {
-        vec3 ray_dir = unit_vector(ray.Direction());
-        float t = 0.5 * (ray_dir.y() + 1.0);            // convert from [-1, 1] to [0, 1]
-        return (1.0-t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+        // vec3 unit_direction = unit_vector(ray.Direction());
+        // float t = 0.5*(unit_direction.y() + 1.0);
+        // return (1.0-t)*vec3(1.0, 1.0, 1.0) + t*vec3(0.5, 0.7, 1.0);
+        return vec3(0.0f);
     }
 }
 
@@ -126,18 +145,20 @@ HitableList* PopulateRandomScene(int n)
     {
         for(int b = -11; b < 11; b++)
         {
-            float randMat = rand()%10/10.0f;
-            vec3 center(a + rand()%10/10.f, 0.2f, b + rand()%10/10.f);
+            float randMat = (rand() / (RAND_MAX + 1.0));
+            vec3 center(a + (rand() / (RAND_MAX + 1.0)), 0.2f, b + (rand() / (RAND_MAX + 1.0)));
             
             if((center - vec3(4.f, 0.2f, 0.f)).length() > 1.5f)  // away from the front large sphere
             {
                 if(randMat < 0.8f) {
-                    spheresList[i++] = new Sphere(center, 0.2f, new Lambert(new Color(vec3(rand()%10/10.f, rand()%10/10.f, rand()%10/10.f))));
+                    spheresList[i++] = new MovingSphere(center, center + vec3(0, .5f * (rand() / (RAND_MAX + 1.0)), 0), 0.f, 1.f, 0.2f, 
+                                new Lambert(new Color(vec3((rand() / (RAND_MAX + 1.0)), (rand() / (RAND_MAX + 1.0)), (rand() / (RAND_MAX + 1.0)))))
+                                    );
                 } 
                 else if(randMat < 0.95) {
                     spheresList[i++] = new Sphere(center, 0.2f, 
-                    new Metal(vec3(0.5*(1-rand()%10/10.f), 0.5*(1-rand()%10/10.f), 0.5*(1-rand()%10/10.f)),
-                                0.5f*(rand()%10/10.f)));
+                    new Metal(vec3(0.5*(1-(rand() / (RAND_MAX + 1.0))), 0.5*(1-(rand() / (RAND_MAX + 1.0))), 0.5*(1-(rand() / (RAND_MAX + 1.0)))),
+                                0.5f*((rand() / (RAND_MAX + 1.0)))));
                 }
                 else {
                     spheresList[i++] = new Sphere(center, 0.2f, new Dielectric(1.5f));
@@ -150,23 +171,58 @@ HitableList* PopulateRandomScene(int n)
     spheresList[i++] = new Sphere(vec3(0,    1.f, 0), 1.f, new Dielectric(1.5f));
     
     int width, height, noChannels;
-    unsigned char *imageData = LoadTexture("pavement.jpg", width, height, noChannels);
-    std::cout << width << " " << height << " " << noChannels << std::endl;
+    unsigned char *imageData = LoadTexture("waterPaint.jpg", width, height, noChannels);
     spheresList[i++] = new Sphere(vec3(-4.f,  1.f, 0), 1.f, new Lambert(new ImageTexture(imageData, width, height)));
 
 
     return new HitableList(spheresList, i);
 }
 
+
+HitableList* CornellBox()
+{
+    Surface** list = new Surface*[8];
+
+    Material* red    = new Lambert(new Color(vec3(0.65f, 0.05f, 0.05f)));
+    Material* white  = new Lambert(new Color(vec3(0.73f, 0.73f, 0.73f)));
+    Material* green  = new Lambert(new Color(vec3(0.12f, 0.45f, 0.15f)));
+    Material* light  = new DiffuseLightMat(new Color(vec3(15, 15, 15)));
+    Material* light2  = new DiffuseLightMat(new Color(vec3(7, 7, 7)));
+
+    int i = 0; 
+    list[i++] = new FlipNormals(new RectangleYZ(0, 555, 0, 555, 555, green));
+    list[i++] = new RectangleYZ(0, 555, 0, 555, 0, red);
+
+    list[i++] = new FlipNormals(new RectangleXZ(0, 555, 0, 555, 555, white));
+    list[i++] = new RectangleXZ(0, 555, 0, 555, 0, white);
+
+    list[i++] = new FlipNormals(new RectangleXY(0, 555, 0, 555, 555, white)); 
+
+    list[i++] = new Box(vec3(130, 0, 65), vec3(295, 165, 230), white);  
+    list[i++] = new Box(vec3(265, 0, 295), vec3(430, 330, 460), white);  
+
+    // int width, height, noChannels;
+    // unsigned char *imageData = LoadTexture("waterPaint.jpg", width, height, noChannels);
+    // list[i++] = new Sphere(vec3(212.5f, 265.f, 174.5f), 100.f, new Lambert(new ImageTexture(imageData, width, height)));
+
+    list[i++] = new FlipNormals(new RectangleXZ(200, 325, 214, 345, 554.9f, light));
+    list[i++] = new FlipNormals(new RectangleXZ(325, 465, 227, 332, 554.9f, light2));
+
+    // list[i++] = new Sphere(vec3(278.f, 278.f, 278.f), 50.f, light2);
+    // list[i++] = (new RectangleXZ(213, 343, 227, 332, 554, light));
+
+    return new HitableList(list, i);
+}
+
 int main()
 {
     auto startTime = std::chrono::steady_clock::now();
-
+    
 	srand((unsigned)time(NULL));
 
     std::ofstream image;
     image.open("output.ppm");
-    const int width = 1200, height = 800, samples = 100;
+    const int width = 800, height = 800, samples = 100;
     
     //----------- Objects in the scene ------------//
     // Surface* list[5];
@@ -178,16 +234,21 @@ int main()
 
     // Surface* scene= new HitableList(list, 5);
 
-    HitableList* scene= PopulateRandomScene(500);
+    // HitableList* scene= PopulateRandomScene(500);
+
+    HitableList* scene= CornellBox();
 
     //----------------- Camera --------------------//  
-    vec3 cameraOrigin = vec3(13.f, 2.f, 3.f);
-    vec3 cameraLookAt = vec3(0, 0, 0.f);
+    vec3 cameraOrigin = vec3(277.f, 277.f, -800.f);     // middle
+    vec3 cameraLookAt = vec3(277.f, 277.f, 0.f);            
     
     // more in equation in page 69 Realistic RayTracer
-    float focalLength = 22.f;       // f 
-    float distanceFromLength  = 10.f; // s
-    Camera cam(float(width), float(height), 20.f, cameraOrigin, cameraLookAt, 0.1f, focalLength, distanceFromLength);
+    float focalLength = 22.f;            // f 
+    float distanceFromLength  = 10.f;    // s
+    float aparture = 0.0f;
+    float FOV = 40.f;
+
+    Camera cam(float(width), float(height), FOV, cameraOrigin, cameraLookAt, aparture, focalLength, distanceFromLength, 0.0, 1.0);
     
     // 1- (s) can't be smaller than (f)
     // 2- apature should be very small
@@ -202,8 +263,8 @@ int main()
             vec3 color = vec3(0.0f);
             for(int s = 0; s < MAXSAMPLE; s++)
             {
-                float u = float(row + (rand() % 10) / 10.f) / float(width);
-                float v = float(col + (rand() % 10) / 10.f) / float(height);
+                float u = float(row + (rand() / (RAND_MAX + 1.0))) / float(width);
+                float v = float(col + (rand() / (RAND_MAX + 1.0))) / float(height);
 
                 // ray goes to each pixel in the image
                 Ray ray = cam.RayCast(u, v);

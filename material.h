@@ -8,10 +8,11 @@ vec3 RandomPointUnitSphere()
 {
     vec3 p;
     do {
-        p = (2.0f * vec3(rand()%10 / 10.f, rand()%10 / 10.f, rand()%10 / 10.f)) - vec3(1.f);
-    } while(p.squared_length() >= 1.f);     // must be <1 to be on sphere
+        p = (2.0f * vec3((rand() / (RAND_MAX + 1.0)), (rand() / (RAND_MAX + 1.0)), (rand() / (RAND_MAX + 1.0)))) - vec3(1.f);
 
-    // std::cout << p.x() << " " << p.y() << " " << p.z() << " | " << p.squared_length() << std::endl;
+    //    std::cout << p.x() << " " << p.y() << " " << p.z() << std::endl;
+
+    } while(dot(p, p) >= 1.f);     // must be <1 to be on sphere
     return p;
 }
 
@@ -55,10 +56,38 @@ class Material
 {
 public:
     virtual bool Scatter(const Ray& inRay, const HitResult& inHitResult, vec3& outAttentuation, Ray& outScatteredRay) const = 0;
+    
+    // implement default here to avoid override for all non-emitting materials
+    virtual vec3 Emitted(float u, float v, const vec3& p) const { return vec3(0.f); } 
 };
 
+//------------------------------------
+// Used for objects that emit light
+//------------------------------------
+class DiffuseLightMat : public Material
+{
+public:
+    DiffuseLightMat() {}
+    DiffuseLightMat(Texture* inEmit): emit(inEmit) {}
 
+    virtual bool Scatter(const Ray& inRay, const HitResult& inHitResult, vec3& outAttentuation, Ray& outScatteredRay) const
+    {
+        // no reflection or refraction
+        return false;
+    }
+
+    virtual vec3 Emitted(float u, float v, const vec3& p) const
+    { 
+        return emit->Value(u, v, p); 
+    }
+
+private:
+    Texture* emit;
+};
+
+//---------------------------------
 // Diffuse-only material
+//---------------------------------
 class Lambert : public Material
 {
 public:
@@ -67,11 +96,8 @@ public:
     virtual bool Scatter(const Ray& inRay, const HitResult& inHitResult, vec3& outAttentuation, Ray& outScatteredRay) const
     {
         vec3 target = inHitResult.p + inHitResult.n + RandomPointUnitSphere();
-        outScatteredRay = Ray(inHitResult.p, target - inHitResult.p);
+        outScatteredRay = Ray(inHitResult.p, target - inHitResult.p, inRay.Time());
         outAttentuation = albedo->Value(inHitResult.u, inHitResult.v, inHitResult.p);
-        
-        // std::cout << "U = " << inHitResult.u  << " V = " << inHitResult.v << std::endl;
-
         return true;
     }
 
@@ -97,7 +123,7 @@ public:
     virtual bool Scatter(const Ray& inRay, const HitResult& inHitResult, vec3& outAttentuation, Ray& outScatteredRay) const
     {
         vec3 reflected = Reflect(unit_vector(inRay.Direction()), inHitResult.n);
-        outScatteredRay = Ray(inHitResult.p, reflected + fuzz * RandomPointUnitSphere());
+        outScatteredRay = Ray(inHitResult.p, reflected + fuzz * RandomPointUnitSphere(), inRay.Time());
         outAttentuation = albedo;
         return (dot(outScatteredRay.Direction(), inHitResult.n) > 0);       // if the angel > 90 (don't scatter below the surface)
     }
@@ -153,13 +179,13 @@ public:
         }
 
         /// if reflectance propability > 0.55 .. or it can be rand() probabiblity
-        if(R > rand()%10/10.f)      
+        if(R > (rand() / (RAND_MAX + 1.0)))      
         {
-            outScatteredRay =  Ray(inHitResult.p, reflected);
+            outScatteredRay =  Ray(inHitResult.p, reflected, inRay.Time());
            // std::cout << "L" << std::endl;
         } else
         {
-            outScatteredRay = Ray(inHitResult.p, refracted);
+            outScatteredRay = Ray(inHitResult.p, refracted, inRay.Time());
             // std::cout << "R" << std::endl;
         }
         return true;

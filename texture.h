@@ -18,7 +18,7 @@ public:
      * u, v : are the texture coordinates.
      * p    : is a reference to the hitpoint of interest to assign the texture color at u, v to
      */
-    virtual vec3 Value(float u, float v,const vec3& p) = 0;
+    virtual vec3 Value(float u, float v,const vec3& p) const = 0;
 };
 
 
@@ -26,9 +26,9 @@ class Color : public Texture
 {
 public:
     Color(){}
-    Color(vec3& inColor) : color(inColor){}
+    Color(const vec3& inColor) : color(inColor){}
 
-    virtual vec3 Value(float u = 0, float v = 0,const vec3& p = vec3(0))
+    virtual vec3 Value(float u, float v,const vec3& p)const
     {
         return color;
     }
@@ -42,10 +42,10 @@ public:
     CheckerTexture() {}
     CheckerTexture(Color* a, Color* b, int size = 10) : a(a), b(b), size(size){}
 
-    virtual vec3 Value(float u, float v,const vec3& p)
+    virtual vec3 Value(float u, float v,const vec3& p) const 
     {
         float sines = sin(size*p.x()) * sin(size*p.y()) * sin(size*p.z());   
-        return sines > 0 ? a->Value() : b->Value();
+        return sines > 0 ? a->Value(u, v, p) : b->Value(u, v, p);
     }
 
 private:
@@ -64,7 +64,7 @@ public:
                 width(nx), 
                 height(ny) {}
 
-    virtual vec3 Value(float u, float v,const vec3& p)
+    virtual vec3 Value(float u, float v,const vec3& p)const
     {   
         // texture coodinate to pixel coordiante
         int i = u * width;
